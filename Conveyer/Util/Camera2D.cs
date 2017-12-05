@@ -35,7 +35,7 @@ namespace Conveyer.Util
                     _zoom = 0.1f;
                 }
                 startZoom = _zoom;
-                endZoom = _zoom + 0.5f;
+                endZoom = _zoom + 0.03f;
             } // Negative zoom will flip image
         }
 
@@ -69,14 +69,14 @@ namespace Conveyer.Util
             if(fastZooming) {
                 if(zoomIn) {
                     if(_zoom < endZoom) {
-                        _zoom += 0.1f;
+                        _zoom += 0.001f;
                     } else {
                         zoomIn = false;
                         zoomOut = true;
                     }
                 } else if(zoomOut) {
                     if(_zoom > startZoom) {
-                        _zoom -= 0.1f;
+                        _zoom -= 0.001f;
                     } else {
                         zoomOut = false;
                         fastZooming = false;

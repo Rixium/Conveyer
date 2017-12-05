@@ -34,8 +34,17 @@ namespace Conveyer.GameClasses {
         private int score = 0;
         private int spawnTimer = 200;
         private int currentTimer;
+
+        private List<BoxMover> itemMovers = new List<BoxMover>();
+        private List<BoxMover> boxMovers = new List<BoxMover>();
+
+        private List<Box> nearBoxes = new List<Box>();
+
+        private bool correctBox = false;
+        bool canPutInBox = false;
         int forceSpawn = 0;
 
+        private String[] noOrder = { "Ain't no order!", "Free stuff?", "What you playin' at?", "Wake up!" };
         int startCounter = 150;
         int clockDown = 3;
         private BoxMover itemBrokeBox, boxBrokeBox;
@@ -77,8 +86,10 @@ namespace Conveyer.GameClasses {
                             BoxMover mover = null;
                             if (j == 0) {
                                 mover = new BoxMover(i * GameConstants.TILE_SIZE, j * GameConstants.TILE_SIZE, BoxMover.Type.item);
+                                itemMovers.Add(mover);
                             } else if (j == GameConstants.MAP_SIZE_VERTICAL - 1) {
                                 mover = new BoxMover(i * GameConstants.TILE_SIZE, j * GameConstants.TILE_SIZE, BoxMover.Type.box);
+                                boxMovers.Add(mover);
                             }
                             entities.Add(mover);
                         }
@@ -91,7 +102,6 @@ namespace Conveyer.GameClasses {
             cam.Pos = new Microsoft.Xna.Framework.Vector2(player.Position.X, player.Position.Y);
             cam.Zoom = GameConstants.CAM_ZOOM;
             entities.Add(player);
-            
         }
 
         public void AddItem(Item item) {
@@ -135,6 +145,7 @@ namespace Conveyer.GameClasses {
 
         public void Update() {
             if (!end && !start) {
+                nearBoxes.Clear();
                 Item i = null;
 
                 if (orders.Count > 0) {
@@ -198,6 +209,7 @@ namespace Conveyer.GameClasses {
                 bool boxBroke = false;
                 bool hasFixed = false;
                 bool showingBox = false;
+                bool nearBox = false;
 
                 foreach (Entity e in new List<Entity>(entities)) {
                     e.Update();
@@ -207,13 +219,13 @@ namespace Conveyer.GameClasses {
                             entities.Remove(e);
                         }
 
-                        if (e.GetType() == typeof(Box)) {
-                            Box box = (Box)e;
-                            if (GetDistance(new Vector2(box.DrawRect.X, box.DrawRect.Y), player.Position) <= 30) {
-                                GameConstants.ACTIVE_BOX = box;
-                                showingBox = true;
-                            }
+                        Box box = (Box)e;
+                        if (GetDistance(new Vector2(box.DrawRect.X, box.DrawRect.Y), player.Position) <= 30) {
+                            canPutInBox = true;
+                            nearBox = true;
+                            nearBoxes.Add(box);
                         }
+
                     }
 
                     if (e.GetType() == typeof(BoxMover)) {
@@ -231,22 +243,16 @@ namespace Conveyer.GameClasses {
                             Vector2 pos = new Vector2(player.Position.X, itemSpawner.Position.Y);
                             if (GetDistance(player.Position, pos) <= 30) {
                                 if (InputManager.Instance.KeyboardState.IsKeyDown(Keys.INTERACT) && InputManager.Instance.LastKeyState.IsKeyUp(Keys.INTERACT)) {
-                                    itemBrokeBox.Fix();
                                     GameConstants.ItemConveyerRunning = true;
                                     itemBrokeBox = null;
                                     itemBroke = false;
                                     hasFixed = true;
                                     Celebrate();
                                     score += 5;
-                                    texts.Add(new EpicText("+" + 5, player.Position));
+                                    texts.Add(new EpicText("+" + 5, player.Position, Color.Green));
                                     ContentChest.Instance.fix.Play();
-                                    foreach (Entity ex in entities) {
-                                        if (ex.GetType() == typeof(BoxMover)) {
-                                            BoxMover boxMover2 = (BoxMover)ex;
-                                            if (boxMover2.type == BoxMover.Type.item) {
-                                                boxMover2.Fix();
-                                            }
-                                        }
+                                    foreach (BoxMover ex in itemMovers) {
+                                        ex.Fix();
                                     }
                                 }
                             }
@@ -264,14 +270,9 @@ namespace Conveyer.GameClasses {
                                     ContentChest.Instance.fix.Play();
                                     Celebrate();
                                     score += 5;
-                                    texts.Add(new EpicText("+" + 5, player.Position));
-                                    foreach (Entity ex in entities) {
-                                        if (ex.GetType() == typeof(BoxMover)) {
-                                            BoxMover boxMover2 = (BoxMover)ex;
-                                            if (boxMover2.type == BoxMover.Type.box) {
-                                                boxMover2.Fix();
-                                            }
-                                        }
+                                    texts.Add(new EpicText("+" + 5, player.Position, Color.Green));
+                                    foreach (BoxMover ex in boxMovers) {
+                                        ex.Fix();
                                     }
                                 }
                             }
@@ -291,6 +292,9 @@ namespace Conveyer.GameClasses {
                     }
                 }
 
+                bool lastConveyerRun = GameConstants.BoxConveyerRunning;
+                bool lastItemConveyerRun = GameConstants.ItemConveyerRunning;
+
                 if (boxBroke) {
                     GameConstants.BoxConveyerRunning = false;
                 } else {
@@ -302,6 +306,17 @@ namespace Conveyer.GameClasses {
                 } else {
                     GameConstants.ItemConveyerRunning = true;
                 }
+
+                if(lastConveyerRun && !GameConstants.BoxConveyerRunning) {
+                    if (random.Next(0, 3) == 1) {
+                        ContentChest.Instance.fixBeltSounds[random.Next(0, ContentChest.Instance.fixBeltSounds.Length)].Play();
+                    }
+                } else if (lastItemConveyerRun && !GameConstants.ItemConveyerRunning) {
+                    if (random.Next(0, 3) == 1) {
+                        ContentChest.Instance.fixBeltSounds[random.Next(0, ContentChest.Instance.fixBeltSounds.Length)].Play();
+                    }
+                }
+
 
                 if (!showingText) {
                     GameConstants.item = null;
@@ -325,23 +340,28 @@ namespace Conveyer.GameClasses {
                                     player.RemoveItem();
                                     items.Add(i);
                                     score -= 10;
-                                    texts.Add(new EpicText("-" + 10, player.Position));
+                                    texts.Add(new EpicText("-" + 10, player.Position, Color.Red));
                                     Celebrate();
                                     i.floored = true;
                                     i.Position = player.Position + player.bodyPos;
+                                    if (random.Next(0, 3) == 1) {
+                                        ContentChest.Instance.droppedBoxSounds[random.Next(0, ContentChest.Instance.droppedBoxSounds.Length)].Play();
+                                    }
                                     entities.Add(i);
                                 }
                             } else {
                                 bool removePoints = true;
-                                if(GameConstants.ACTIVE_BOX != null) {
-                                    Box box = GameConstants.ACTIVE_BOX;
-                                    if (player.Item != null) {
-                                        if (box.boxType == player.Item.boxType) {
-                                            if (box.Package()) {
+                                bool failedOnWrongBox = false;
+                                bool failedOnNoOrder = false;
+                                if (player.Item != null) {
+                                    foreach (Box e in nearBoxes) {
+                                        Box box = (Box)e;
+                                            if (box.boxType == player.Item.boxType) {
                                                 bool canComplete = false;
                                                 foreach (Order o in new List<Order>(orders)) {
                                                     if (o.Item.Name.Equals(player.Item.Name)) {
                                                         if (o.Complete()) {
+                                                            correctBox = true;
                                                             canComplete = true;
                                                             break;
                                                         }
@@ -349,24 +369,46 @@ namespace Conveyer.GameClasses {
                                                 }
 
                                                 if (canComplete) {
-                                                    ContentChest.Instance.correct.Play();
-                                                    items.Remove(player.Item);
-                                                    score += 5;
-                                                    texts.Add(new EpicText("+" + 5, player.Position));
-                                                    Celebrate();
-                                                    player.RemoveItem();
-                                                    removePoints = false;
+                                                    if (box.Package()) {
+                                                        ContentChest.Instance.correct.Play();
+                                                        items.Remove(player.Item);
+                                                        score += 5;
+                                                        texts.Add(new EpicText("+" + 5, player.Position, Color.Green));
+                                                        Celebrate();
+                                                        player.RemoveItem();
+                                                        removePoints = false;
+                                                        break;
+                                                    }
+                                                } else {
+                                                    failedOnNoOrder = true;
                                                 }
+                                            } else {
+                                                failedOnWrongBox = true;
                                             }
                                         }
-                                    }
+                                } else {
+                                    removePoints = false;
+                                }
+
+                                if(!nearBox) {
+                                    canPutInBox = false;
                                 }
 
                                 if (removePoints) {
                                     ContentChest.Instance.wrong.Play();
                                     score--;
-                                    texts.Add(new EpicText("-" + 1, player.Position));
+                                    texts.Add(new EpicText("-" + 1, player.Position, Color.Red));
                                     Celebrate();
+
+                                    if(failedOnWrongBox) {
+                                        if (random.Next(0, 3) == 1) {
+                                            ContentChest.Instance.wrongBoxSounds[random.Next(0, ContentChest.Instance.wrongBoxSounds.Length)].Play();
+                                        }
+                                    } else if(failedOnNoOrder) {
+                                        if (random.Next(0, 3) == 1) {
+                                            ContentChest.Instance.noOrderSounds[random.Next(0, ContentChest.Instance.noOrderSounds.Length)].Play();
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -381,16 +423,9 @@ namespace Conveyer.GameClasses {
                     }
                 }
 
-                if (count >= 28) {
+                if (count >= 25) {
                     if (!heartbeating) {
                         heartbeating = true;
-                        ContentChest.Instance.heartBeatInstance.IsLooped = true;
-                        ContentChest.Instance.heartBeatInstance.Play();
-                        ContentChest.Instance.heartBeatInstance.Volume = 1f;
-                    }
-                } else {
-                    if (heartbeating) {
-                        ContentChest.Instance.heartBeatInstance.Stop();
                     }
                 }
 
@@ -417,6 +452,7 @@ namespace Conveyer.GameClasses {
 
                 cam.Update();
                 InputManager.Instance.LastKeyState = InputManager.Instance.KeyboardState;
+                ui.Update(score);
             } else {
                 if(start) {
                     if (startCounter > 0) {
@@ -430,6 +466,7 @@ namespace Conveyer.GameClasses {
                         startCounter = 0;
                         clockDown = 3;
                         MediaPlayer.IsRepeating = true;
+                        MediaPlayer.Volume = .5f;
                         MediaPlayer.Play(ContentChest.Instance.theme);
                     }
                 }
@@ -503,29 +540,41 @@ namespace Conveyer.GameClasses {
                 o.Draw(spriteBatch);
             }
 
+            bool showingText = false;
+
             Vector2 pos = Vector2.Zero;
-            if (GameConstants.BoxConveyerRunning) {
-                if (GameConstants.ACTIVE_BOX != null) {
+            if (GameConstants.BoxConveyerRunning && !showingText) {
+                if (canPutInBox) {
                     if (player.Item != null) {
                         pos = new Vector2(10, GameConstants.GAME_HEIGHT - 30);
-                        Color choice;
-                        if(GameConstants.ACTIVE_BOX.boxType == player.Item.boxType) {
-                            choice = Color.Green;
-                        } else {
-                            choice = Color.Red;
+                        Color choice = Color.Red;
+                        foreach(Box box in nearBoxes) {
+                            if(box.boxType == player.Item.boxType) {
+                                foreach(Order o in orders) {
+                                    if(o.Item.Name.Equals(player.Item.Name) && !o.IsComplete) {
+                                        choice = Color.Green;
+                                        break;
+                                    }
+                                }
+                                break;
+                            }
                         }
-
-                        spriteBatch.DrawString(ContentChest.Instance.smallFont, "E - PUT " + player.Item.Name.ToUpper() +" IN " + GameConstants.ACTIVE_BOX.boxType.ToString() + " BOX", pos, choice);
+                        pos = new Vector2(10, GameConstants.GAME_HEIGHT - ContentChest.Instance.lowerUI.Height / 2 - ContentChest.Instance.scoreFont.MeasureString("[E] PACKAGE ITEM").Y / 4);
+                        spriteBatch.DrawString(ContentChest.Instance.scoreFont, "[E] PACKAGE ITEM", pos, choice);
+                        showingText = true;
                     }
                 }
             } else {
-                if (GetDistance(player.Position, new Vector2(player.Position.X, boxSpawner.Position.Y)) <= 40) {
-                    pos = new Vector2(10, GameConstants.GAME_HEIGHT - 30);
-                    spriteBatch.DrawString(ContentChest.Instance.smallFont, "E - FIX CONVEYER", pos, Color.White);
+                if (!showingText) {
+                    if (GetDistance(player.Position, new Vector2(player.Position.X, boxSpawner.Position.Y)) <= 40) {
+                        pos = new Vector2(10, GameConstants.GAME_HEIGHT - ContentChest.Instance.lowerUI.Height / 2 - ContentChest.Instance.scoreFont.MeasureString("[E] FIX CONVEYER").Y / 4);
+                        spriteBatch.DrawString(ContentChest.Instance.scoreFont, "[E] FIX CONVEYER", pos, Color.White);
+                        showingText = true;
+                    }
                 }
             }
 
-            if (GameConstants.ItemConveyerRunning) {
+            if (GameConstants.ItemConveyerRunning && !showingText) {
                 if (GameConstants.item != null) {
                     Color choice;
                     if (!player.Carrying) {
@@ -533,18 +582,20 @@ namespace Conveyer.GameClasses {
                     } else {
                         choice = Color.Red;
                     }
-                    pos = new Vector2(10, GameConstants.GAME_HEIGHT - 30);
-                    spriteBatch.DrawString(ContentChest.Instance.smallFont, "E - PICK UP " + GameConstants.item.Name.ToString().ToUpper(), pos, choice); ;
+                    pos = new Vector2(10, GameConstants.GAME_HEIGHT - ContentChest.Instance.lowerUI.Height / 2 - ContentChest.Instance.scoreFont.MeasureString("[E] PICK UP").Y / 4);
+                    spriteBatch.DrawString(ContentChest.Instance.scoreFont, "[E] PICK UP", pos, choice);
+                    showingText = true;
                 }
             } else {
-                if (GetDistance(player.Position, new Vector2(player.Position.X, itemSpawner.Position.Y)) <= 40) {
-                    pos = new Vector2(10, GameConstants.GAME_HEIGHT - 30);
-                    spriteBatch.DrawString(ContentChest.Instance.smallFont, "E - FIX CONVEYER", pos, Color.White);
+                if (!showingText) {
+                    if (GetDistance(player.Position, new Vector2(player.Position.X, itemSpawner.Position.Y)) <= 40) {
+                        pos = new Vector2(10, GameConstants.GAME_HEIGHT - ContentChest.Instance.lowerUI.Height / 2 - ContentChest.Instance.scoreFont.MeasureString("[E] FIX CONVEYER").Y / 4);
+                        spriteBatch.DrawString(ContentChest.Instance.scoreFont, "[E] FIX CONVEYER", pos, Color.White);
+                        showingText = true;
+                    }
                 }
             }
-            
-            pos = new Vector2(GameConstants.GAME_WIDTH / 2 - ContentChest.Instance.scoreFont.MeasureString(score.ToString()).X / 2, GameConstants.GAME_HEIGHT - 20 - ContentChest.Instance.scoreFont.MeasureString(score.ToString()).Y);
-            spriteBatch.DrawString(ContentChest.Instance.scoreFont, score.ToString(), pos, Color.White);
+           
 
             if (end || start) {
                 if(start) {

@@ -29,7 +29,7 @@ namespace Conveyer.GameClasses {
 
         public BoxMover(int x, int y, Type type) {
             this.type = type;
-            movingBoxAnimation = new Animation(ContentChest.Instance.conveyer, 10);
+            movingBoxAnimation = new Animation(ContentChest.Instance.conveyer, 1);
             position = new Vector2(x, y);
             startPos = position;
             movingUp = true;
@@ -45,7 +45,7 @@ namespace Conveyer.GameClasses {
         }
 
         public bool Fix() {
-            if(life <= 0) {
+            if(life < 100) {
                 life = 100;
                 isBroke = false;
                 return true;
@@ -66,7 +66,7 @@ namespace Conveyer.GameClasses {
                         }
                         if (rNum == 1) {
                             life -= 1;
-                            if (life <= 0) {
+                            if (life <= 0 && !isBroke) {
                                 ContentChest.Instance.machineBreak.Play();
                                 isBroke = true;
                             }
@@ -78,22 +78,6 @@ namespace Conveyer.GameClasses {
                     movingBoxAnimation.Update();
                 } else {
                     movingBoxAnimation.SetIndex(0);
-                }
-
-                if (position.Y > startPos.Y - 1 && movingUp) {
-                    position.Y--;
-                } else if (movingUp) {
-                    movingUp = false;
-                    movingDown = true;
-                }
-
-                if (movingDown) {
-                    if (position.Y < startPos.Y) {
-                        position.Y++;
-                    } else {
-                        movingDown = false;
-                        movingUp = true;
-                    }
                 }
             }
         }

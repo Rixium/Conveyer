@@ -74,11 +74,12 @@
     <AssemblyOriginatorKeyFile>publishKey.pfx</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <PropertyGroup />
-  <PropertyGroup>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
-  </PropertyGroup>
+  <PropertyGroup />
   <PropertyGroup>
     <TargetZone>LocalIntranet</TargetZone>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Constants\Enums.cs" />
@@ -104,7 +105,7 @@
     <Compile Include="Screens\GameScreen.cs" />
     <Compile Include="Screens\MainMenu.cs" />
     <Compile Include="Screens\Screen.cs" />
-    <Compile Include="Screens\ScreenManager.cs" />
+    <Compile Include="GameClasses\ScreenManager.cs" />
     <Compile Include="UI\Button.cs" />
     <Compile Include="UI\InputManager.cs" />
     <Compile Include="UI\UICover.cs" />

@@ -37,7 +37,7 @@ namespace Conveyer {
         }
 
         // Store all of our textures in an array. This should be faster than a dictionary, or a stacked list.
-        public Texture2D[] conveyer = new Texture2D[2];
+        public Texture2D[] conveyer = new Texture2D[4];
         public Texture2D[] floor = new Texture2D[1];
         public Texture2D[] boxSpawner = new Texture2D[1];
 
@@ -78,6 +78,10 @@ namespace Conveyer {
         public Dictionary<string, Texture2D> fragileItems = new Dictionary<string, Texture2D>();
         public Dictionary<string,Texture2D> bigItems = new Dictionary<string, Texture2D>();
 
+        public SoundEffect[] noOrderSounds;
+        public SoundEffect[] droppedBoxSounds;
+        public SoundEffect[] wrongBoxSounds;
+        public SoundEffect[] fixBeltSounds;
 
         // Fonts
 
@@ -87,13 +91,16 @@ namespace Conveyer {
         public SpriteFont scoreFont2;
 
         public Texture2D[] sparks = new Texture2D[4];
+
         public ContentChest() {
         }
 
         public void Load() {
             // Loads all of our assets.
-            conveyer[0] = Content.Load<Texture2D>("Conveyer/1");
-            conveyer[1] = Content.Load<Texture2D>("Conveyer/2");
+
+            for(int i = 0; i < conveyer.Length; i++) {
+                conveyer[i] = Content.Load<Texture2D>("Conveyer/" + (i + 1));
+            }
 
             floor[0] = Content.Load<Texture2D>("Floor/1");
 
@@ -118,6 +125,7 @@ namespace Conveyer {
             head = Content.Load<Texture2D>("Worker/Head/head1");
             body = Content.Load<Texture2D>("Worker/Body/body");
 
+            
             for (int i = 1; i <= 2; i++) {
                 headWalk[i - 1] = Content.Load<Texture2D>("Worker/Head/head" + (i));
             }
@@ -169,6 +177,29 @@ namespace Conveyer {
                 sparks[i] = Content.Load<Texture2D>("SparkAnimation/spark" + (i + 1));
             }
             heartBeatInstance = ContentChest.Instance.heartbeat.CreateInstance();
+
+            // order Sounds
+
+            wrongBoxSounds = new SoundEffect[2];
+            noOrderSounds = new SoundEffect[4];
+            droppedBoxSounds = new SoundEffect[1];
+            fixBeltSounds = new SoundEffect[2];
+
+            for(int i = 0; i < fixBeltSounds.Length; i++) {
+                fixBeltSounds[i] = Content.Load<SoundEffect>("Sounds/fixBelt/" + (i + 1));
+            }
+
+            for(int i = 0; i < wrongBoxSounds.Length; i++) {
+                wrongBoxSounds[i] = Content.Load<SoundEffect>("Sounds/wrongBox/" + (i + 1));
+            }
+
+            for (int i = 0; i < noOrderSounds.Length; i++) {
+                noOrderSounds[i] = Content.Load<SoundEffect>("Sounds/noOrder/" + (i + 1));
+            }
+
+            for (int i = 0; i < droppedBoxSounds.Length; i++) {
+                droppedBoxSounds[i] = Content.Load<SoundEffect>("Sounds/boxFloor/" + (i + 1));
+            }
         }
 
     }

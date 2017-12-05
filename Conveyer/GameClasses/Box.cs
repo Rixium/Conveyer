@@ -118,22 +118,6 @@ namespace Conveyer.GameClasses {
                 position.X -= .5f;
                 bounds.X = (int)position.X;
                 drawRect.X = (int)position.X;
-
-                if (drawRect.Y > startPos.Y - 1 && movingUp) {
-                    drawRect.Y--;
-                } else if (movingUp) {
-                    movingUp = false;
-                    movingDown = true;
-                }
-
-                if (movingDown) {
-                    if (drawRect.Y < startPos.Y) {
-                        drawRect.Y++;
-                    } else {
-                        movingDown = false;
-                        movingUp = true;
-                    }
-                }
             }
         }
 
